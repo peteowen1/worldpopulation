@@ -1,0 +1,15 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^data-raw$
+^analysis$
+^setup_package\.R$
+^README\.Rmd$
+^\.github$
+^LICENSE\.md$
+^\.claude$
+^CLAUDE\.md$
+^PACKAGE_COMPLETE\.md$
+^QUICKSTART\.md$
+^_ul$
+^test_counts\.R$
+^\.positai$

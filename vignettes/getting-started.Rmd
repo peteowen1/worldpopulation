@@ -1,0 +1,362 @@
+---
+title: "Getting Started with worldpopulation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with worldpopulation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Set to TRUE once data is downloaded
+)
+```
+
+```{r setup}
+library(worldpopulation)
+```
+
+## Introduction
+
+The `worldpopulation` package allows you to analyze population within circles around global city centers using high-resolution Global Human Settlement Layer (GHS-POP) data. This vignette will walk you through the basic workflow.
+
+The package is inspired by Tom Forth's [Circle Populations](https://www.tomforth.co.uk/circlepopulations/) project, which ranks cities by how much population they have N kilometers from their city center.
+
+## Installation and Setup
+
+### 1. Install the Package
+
+```{r install, eval=FALSE}
+# Install from GitHub (once published)
+# devtools::install_github("yourusername/worldpopulation")
+
+# Or install locally
+devtools::install()
+```
+
+### 2. Download GHS-POP Data
+
+Before you can analyze population, you need to download the Global Human Settlement Layer population raster data. This is a one-time setup step.
+
+#### Choosing a Resolution
+
+GHS-POP data is available in 4 different resolutions. Choose based on your needs:
+
+| Resolution | File Size | Description | Use Case |
+|------------|-----------|-------------|----------|
+| `"30ss"` | ~480 MB | 30 arc-seconds (WGS84) | Fast download, exploration |
+| `"1km"` | ~300 MB | 1 kilometer (Mollweide) | Quick testing, good accuracy |
+| `"100m"` | ~5 GB | 100 meters (Mollweide) | Final analysis, highest accuracy |
+| `"3ss"` | ~12 GB | 3 arc-seconds (WGS84) | Maximum detail (very large file) |
+
+**Projection differences:**
+
+- **Mollweide (100m, 1km)**: Equal-area projection where each pixel represents the same ground area globally. Best for accurate population totals. Coordinates are automatically transformed.
+
+- **WGS84 (3ss, 30ss)**: Standard latitude/longitude. No reprojection needed, but pixel size varies by latitude (e.g., 30ss is ~930m at equator, ~465m at 60° latitude).
+
+**Recommendation:** Start with `"30ss"` (480 MB) for fast exploration, then use `"100m"` (5 GB) for final analysis if accuracy is critical.
+
+```{r download}
+# Fast download for getting started (recommended)
+download_ghspop_data(year = 2025, resolution = "30ss")
+
+# Or highest accuracy for final analysis
+# download_ghspop_data(year = 2025, resolution = "100m")
+
+# Or balanced option (equal-area, moderate size)
+# download_ghspop_data(year = 2025, resolution = "1km")
+
+# Check what you need first
+estimate_download_size("100m", 2025)
+
+# Check what data is cached
+cache_info()
+```
+
+To see all available years:
+
+```{r available-years}
+list_available_years()
+```
+
+### 3. Load World Cities Data
+
+The package includes a built-in dataset of 200+ major world cities:
+
+```{r load-cities}
+cities <- load_world_cities()
+
+# View the first few rows
+head(cities)
+
+# How many cities?
+nrow(cities)
+
+# Cities by country
+table(cities$country)
+```
+
+## Basic Usage
+
+### Single City Analysis
+
+Calculate population within a circle around a specific coordinate:
+
+```{r single-city}
+# Population within 50km of London (51.5074°N, 0.1278°W)
+london_pop <- population_in_circle(
+  lat = 51.5074,
+  lon = -0.1278,
+  radius_km = 50,
+  year = 2025
+)
+
+cat(sprintf("Population within 50km of London: %s\n",
+            format(london_pop, big.mark = ",")))
+```
+
+### Multiple Radii Analysis
+
+Analyze population at different distances from a city center:
+
+```{r multiple-radii}
+# Population at 10, 25, 50, and 100 km from Tokyo
+tokyo_profile <- population_in_circles(
+  lat = 35.6762,
+  lon = 139.6503,
+  radii_km = c(10, 25, 50, 100),
+  year = 2025
+)
+
+print(tokyo_profile)
+```
+
+### Ring Analysis
+
+Calculate population in annular rings (donuts) around a city:
+
+```{r rings}
+# Population in rings: 0-10km, 10-25km, 25-50km, 50-100km
+tokyo_rings <- population_in_rings(
+  lat = 35.6762,
+  lon = 139.6503,
+  radii_km = c(0, 10, 25, 50, 100),
+  year = 2025
+)
+
+print(tokyo_rings)
+```
+
+## Ranking Cities
+
+### Rank All Cities
+
+This is the main use case - ranking cities by population within a specified radius:
+
+```{r rank-all}
+# Load cities
+cities <- load_world_cities()
+
+# Rank all cities by population within 50km
+top_50km <- rank_cities_by_population(
+  cities = cities,
+  radius_km = 50,
+  top_n = 20,  # Show top 20
+  year = 2025
+)
+
+print(top_50km)
+```
+
+### Regional Analysis
+
+Rank cities within a specific region:
+
+```{r regional}
+# Top cities in Europe (approximate bounding box)
+europe_top <- top_cities_in_region(
+  cities = cities,
+  radius_km = 50,
+  min_lat = 35, max_lat = 71,
+  min_lon = -10, max_lon = 40,
+  top_n = 10,
+  year = 2025
+)
+
+print(europe_top)
+```
+
+### Filter by Country
+
+```{r by-country}
+# Get US cities
+us_cities <- filter_cities_by_country("US")
+
+# Rank US cities
+us_ranking <- rank_cities_by_population(
+  cities = us_cities,
+  radius_km = 50,
+  year = 2025
+)
+
+print(us_ranking)
+```
+
+## Comparing Cities
+
+Compare how different cities' populations are distributed across distances:
+
+```{r compare}
+# Select some major cities
+major_cities <- data.frame(
+  city = c("Tokyo", "Delhi", "Shanghai", "São Paulo", "Mumbai",
+           "Cairo", "Mexico City", "Beijing", "Dhaka", "New York"),
+  lat = c(35.6762, 28.7041, 31.2304, -23.5505, 19.0760,
+          30.0444, 19.4326, 39.9042, 23.8103, 40.7128),
+  lon = c(139.6503, 77.1025, 121.4737, -46.6333, 72.8777,
+          31.2357, -99.1332, 116.4074, 90.4125, -74.0060)
+)
+
+# Compare at multiple radii
+comparison <- compare_cities(
+  cities = major_cities,
+  radii_km = c(10, 25, 50, 75, 100),
+  year = 2025
+)
+
+print(comparison)
+```
+
+### Visualize Comparison
+
+```{r visualize, eval=FALSE}
+library(ggplot2)
+
+ggplot(comparison, aes(x = radius_km, y = population / 1e6, color = city)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Population Within Distance from City Center",
+    subtitle = "Top 10 World Cities (2025 projection)",
+    x = "Distance from City Center (km)",
+    y = "Cumulative Population (millions)",
+    color = "City"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+## Density Profiles
+
+Analyze how population density changes with distance:
+
+```{r density}
+# Density profile for Mumbai
+mumbai_density <- population_density_profile(
+  lat = 19.0760,
+  lon = 72.8777,
+  radii_km = seq(5, 50, by = 5),
+  year = 2025
+)
+
+print(mumbai_density)
+```
+
+Visualize density decay:
+
+```{r density-viz, eval=FALSE}
+library(ggplot2)
+
+ggplot(mumbai_density, aes(x = outer_radius_km, y = density_per_km2)) +
+  geom_line(color = "steelblue", linewidth = 1.2) +
+  geom_point(color = "steelblue", size = 3) +
+  labs(
+    title = "Population Density vs Distance from Center",
+    subtitle = "Mumbai (2025)",
+    x = "Distance from City Center (km)",
+    y = "Population Density (people per km²)"
+  ) +
+  theme_minimal()
+```
+
+## Custom City Datasets
+
+You can use your own city coordinates:
+
+```{r custom}
+# Create custom city dataset
+my_cities <- data.frame(
+  city = c("Oxford", "Cambridge", "Bath"),
+  lat = c(51.7520, 52.2053, 51.3811),
+  lon = c(-1.2577, 0.1218, -2.3590),
+  stringsAsFactors = FALSE
+)
+
+# Rank them
+uk_cities_ranking <- rank_cities_by_population(
+  cities = my_cities,
+  radius_km = 20,
+  year = 2025
+)
+
+print(uk_cities_ranking)
+```
+
+## Performance Tips
+
+1. **Choose the right resolution for your task**:
+   - Use `"30ss"` (480 MB) for quick exploration and testing
+   - Use `"1km"` (300 MB) for balanced accuracy with equal-area projection
+   - Use `"100m"` (5 GB) for final analysis when accuracy matters
+   - Use `"3ss"` (12 GB) only if you need maximum detail
+
+```{r resolution, eval=FALSE}
+# Fast exploration
+population_in_circle(
+  lat = 51.5074, lon = -0.1278, radius_km = 50,
+  resolution = "30ss"
+)
+
+# High accuracy analysis
+population_in_circle(
+  lat = 51.5074, lon = -0.1278, radius_km = 50,
+  resolution = "100m"
+)
+```
+
+2. **Batch processing is efficient**: Functions like `rank_cities_by_population()` and `compare_cities()` process multiple cities at once, which is much faster than loops.
+
+3. **Cache management**: The raster data is cached after first load. Use `cache_info()` to see what's cached and `clear_cache()` to free up disk space.
+
+```{r cache-mgmt}
+# See cached files
+cache_info()
+
+# Clear cache (useful if you want to free up disk space)
+# clear_cache()
+```
+
+## Data Sources and Attribution
+
+- **Population Data**: Global Human Settlement Layer (GHS-POP) from the European Commission Joint Research Centre
+  - License: Open access with attribution
+  - URL: https://ghsl.jrc.ec.europa.eu/
+
+- **City Coordinates**: Compiled from multiple public domain sources including Natural Earth, GeoNames, and national statistical agencies
+
+## Next Steps
+
+- See `?rank_cities_by_population` for the main ranking function
+- See `?population_in_circle` for the core population query function
+- Check the analysis examples in the `analysis/` directory
+- Explore different years using `list_available_years()`
+
+## Getting Help
+
+- Package documentation: `?worldpopulation`
+- Function help: `?function_name` (e.g., `?population_in_circle`)
+- Report issues: [GitHub Issues](https://github.com/peteo/worldpopulation/issues)

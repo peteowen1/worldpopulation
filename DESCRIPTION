@@ -1,0 +1,38 @@
+Package: worldpopulation
+Type: Package
+Title: Analyze Population Within Circles Around City Centers Worldwide
+Version: 0.1.0
+Authors@R: c(
+    person(
+      "Pete", "O",
+      email = "pete@example.com",
+      role = c("aut", "cre")
+    )
+  )
+Description: Query population within specified radii around global city centers using
+    high-resolution Global Human Settlement Layer (GHS-POP) data. Rank cities by
+    population density at various distances, compare urban agglomerations, and analyze
+    population distribution patterns. Inspired by Tom Forth's Circle Populations project.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.0.0)
+Imports:
+    terra (>= 1.7),
+    sf (>= 1.0),
+    exactextractr (>= 0.10),
+    geosphere (>= 1.5),
+    utils,
+    tools
+Suggests:
+    ggplot2,
+    curl,
+    dplyr,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+URL: https://github.com/peteo/worldpopulation
+BugReports: https://github.com/peteo/worldpopulation/issues
