@@ -46,7 +46,6 @@ source("data-raw/cities.R")  # Regenerate world_cities dataset
 - Rasters cached in `.pkg_env` to avoid reloading
 
 ### R Package Rules
-- Never manually edit NAMESPACE (roxygen2 generates it)
 - All exported functions need roxygen2 docs with `@export`
 - Use `@importFrom` for external functions in worldpopulation-package.R
 - Functions belong in `R/` — even if only used by data-raw scripts (`@keywords internal @noRd`)
